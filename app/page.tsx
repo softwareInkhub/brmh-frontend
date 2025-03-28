@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { ExecutionsList } from './components/ExecutionsList';
 
 export default function Home() {
   const [activeExecutionId, setActiveExecutionId] = useState<string | null>(null);
@@ -12,7 +11,6 @@ export default function Home() {
       <p className="text-gray-600 mb-8">
         Select a service from the sidebar to get started with API testing and management.
       </p>
-      <ExecutionsList activeExecutionId={activeExecutionId} />
     </div>
   );
 }
