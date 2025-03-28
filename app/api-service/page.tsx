@@ -567,11 +567,12 @@ const ApiService = () => {
       const responseData = await response.json();
       console.log('API Response:', responseData);
 
-      // Extract execution ID from metadata and navigate to executions page
+      // Extract execution ID from metadata and set it
       if (responseData.data?.executionId) {
         console.log('Execution ID:', responseData.data.executionId);
         setCurrentExecutionId(responseData.data.executionId);
-        router.push(`/executions?id=${responseData.data.executionId}`);
+        // Store execution ID in localStorage for the executions page to access
+        localStorage.setItem('currentExecutionId', responseData.data.executionId);
       }
 
       setResponse({
