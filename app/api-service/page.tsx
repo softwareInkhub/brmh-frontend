@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Send, RefreshCw, Copy, Download, Check, Clock, X, Trash2, ChevronRight, ChevronDown, Code, Minimize2, Maximize2, Database, Globe, Edit2 } from 'react-feather';
+import { Send, RefreshCw, Copy, Download, Check, Clock, X, Trash2, ChevronRight, ChevronDown, Code, Minimize2, Maximize2, Database } from 'react-feather';
 import { useRouter } from 'next/navigation';
 
 interface KeyValuePair {
@@ -171,8 +171,6 @@ const ApiService = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [accountSearchQuery, setAccountSearchQuery] = useState('');
-  const [methodSearchQuery, setMethodSearchQuery] = useState('');
 
   // Add this type for items
   type ResponseItem = {
@@ -514,8 +512,8 @@ const ApiService = () => {
     
     try {
       let endpoint = isPaginated
-        ? `https://g76kffqf7bexgoagkfry5chicm0pweoc.lambda-url.us-east-1.on.aws/execute/paginated`
-        : `https://krjgztn4q3ogcm2f7g3modjtyq0glvfm.lambda-url.us-east-1.on.aws/execute`;  
+        ? `http://brmh.in/execute/paginated`
+        : `http://brmh.in/execute`;  
 
       // Get namespace and method details for table name and save-data flag
       let tableName = '';
@@ -529,7 +527,6 @@ const ApiService = () => {
           // Construct table name from namespace and method
           const namespaceName = namespace['namespace-name'].toLowerCase().replace(/[^a-z0-9]/g, '_');
           const methodName = method['namespace-method-name'].toLowerCase().replace(/[^a-z0-9]/g, '_');
-          
           tableName = `${namespaceName}_${methodName}`;
           saveData = method['save-data'] || false;
         }
@@ -1052,26 +1049,6 @@ const ApiService = () => {
     setIsExpanded(!isExpanded);
   };
 
-  // Add these type definitions near the top of the file
-  const filteredAccounts = namespaces.find(n => n['namespace-id'] === selectedNamespace)?.['namespace-accounts']?.filter(account => {
-    const searchLower = accountSearchQuery.toLowerCase();
-    return (
-      account['namespace-account-name'].toLowerCase().includes(searchLower) ||
-      account['namespace-account-url-override']?.toLowerCase().includes(searchLower) ||
-      account.tags?.some(tag => tag.toLowerCase().includes(searchLower))
-    );
-  }) || [];
-
-  const filteredMethods = namespaces.find(n => n['namespace-id'] === selectedNamespace)?.['namespace-methods']?.filter(method => {
-    const searchLower = methodSearchQuery.toLowerCase();
-    return (
-      method['namespace-method-name'].toLowerCase().includes(searchLower) ||
-      method['namespace-method-type'].toLowerCase().includes(searchLower) ||
-      method.tags?.some(tag => tag.toLowerCase().includes(searchLower))
-    );
-  }) || [];
-
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-hidden">
@@ -1149,152 +1126,89 @@ const ApiService = () => {
                 </div>
               </div>
 
-              {/* Accounts Section */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-3 sm:p-4 border-b border-gray-100">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <h2 className="text-lg font-semibold text-gray-900">Accounts</h2>
-                    <div className="relative flex-1 w-full">
-                      <input
-                        type="text"
-                        placeholder="Search accounts..."
-                        value={accountSearchQuery}
-                        onChange={(e) => setAccountSearchQuery(e.target.value)}
-                        className="w-full px-3 py-1.5 pl-8 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <svg className="h-4 w-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
+              {/* Account Selection */}
+              <div className="relative group">
+                <label className="block text-[10px] sm:text-sm font-medium mb-1 sm:mb-2 text-gray-700 group-hover:text-blue-600 transition-colors duration-200">
+                  Account
+                  <span className="ml-0.5 text-[8px] sm:text-xs text-gray-400 font-normal">(optional)</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedAccount}
+                    onChange={handleAccountChange}
+                    className={`w-full p-1.5 sm:p-3 bg-gray-50 border border-gray-200 rounded-lg text-[10px] sm:text-sm shadow-sm appearance-none transition-all duration-200
+                      ${!selectedNamespace 
+                        ? 'cursor-not-allowed opacity-60' 
+                        : 'cursor-pointer hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}
+                    disabled={!selectedNamespace}
+                  >
+                    <option value="">Select</option>
+                    {namespaces
+                      .find(n => n['namespace-id'] === selectedNamespace)
+                      ?.['namespace-accounts']
+                      ?.map((account) => (
+                        <option 
+                          key={account['namespace-account-id']}
+                          value={account['namespace-account-id']}
+                        >
+                          {account['namespace-account-name']}
+                        </option>
+                      )) || []}
+                  </select>
+                  <div className="absolute inset-y-0 right-1.5 flex items-center pointer-events-none">
+                    <ChevronDown size={12} className="text-gray-400" />
                   </div>
                 </div>
-                <div className="overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-24rem)] p-3 sm:p-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {filteredAccounts.map((account) => (
-                      <div key={account['namespace-account-id']} 
-                        className="bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
-                        <div className="p-3 sm:p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-sm font-medium text-gray-900 truncate">
-                                {account['namespace-account-name']}
-                              </h3>
-                              <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                ID: {account['namespace-account-id'].slice(0, 8)}...
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {account['namespace-account-url-override'] && (
-                            <div className="flex items-center gap-1.5 text-gray-600 mb-2">
-                              <Globe size={12} />
-                              <p className="text-xs truncate">{account['namespace-account-url-override']}</p>
-                            </div>
-                          )}
-
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {account.tags && account.tags.slice(0, 2).map((tag: string, index: number) => (
-                              <span key={index} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full">
-                                {tag}
-                              </span>
-                            ))}
-                            {account.tags && account.tags.length > 2 && (
-                              <span className="px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[10px] rounded-full">
-                                +{account.tags.length - 2}
-                              </span>
-                            )}
-                          </div>
-
-                        
-                        </div>
-                      </div>
-                    ))}
-                    {filteredAccounts.length === 0 && (
-                      <div className="col-span-full flex items-center justify-center py-8 text-gray-500 text-sm">
-                        No accounts found
-                      </div>
-                    )}
-                  </div>
+                <div className="mt-0.5 sm:mt-1 flex items-center gap-0.5 sm:gap-1">
+                  <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-blue-500"></div>
+                  <span className="text-[8px] sm:text-xs text-gray-500">
+                    {selectedNamespace 
+                      ? `${namespaces.find(n => n['namespace-id'] === selectedNamespace)?.['namespace-accounts']?.length || 0} available`
+                      : 'Select namespace'}
+                  </span>
                 </div>
               </div>
 
               {/* Method Selection */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-3 sm:p-4 border-b border-gray-100">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <h2 className="text-lg font-semibold text-gray-900">Methods</h2>
-                    <div className="relative flex-1 w-full">
-                      <input
-                        type="text"
-                        placeholder="Search methods..."
-                        value={methodSearchQuery}
-                        onChange={(e) => setMethodSearchQuery(e.target.value)}
-                        className="w-full px-3 py-1.5 pl-8 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <svg className="h-4 w-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
+              <div className="relative group">
+                <label className="block text-[10px] sm:text-sm font-medium mb-1 sm:mb-2 text-gray-700 group-hover:text-blue-600 transition-colors duration-200">
+                  Method
+                  <span className="ml-0.5 text-[8px] sm:text-xs text-gray-400 font-normal">(optional)</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedMethod}
+                    onChange={handleMethodChange}
+                    className={`w-full p-1.5 sm:p-3 bg-gray-50 border border-gray-200 rounded-lg text-[10px] sm:text-sm shadow-sm appearance-none transition-all duration-200
+                      ${!selectedNamespace 
+                        ? 'cursor-not-allowed opacity-60' 
+                        : 'cursor-pointer hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}
+                    disabled={!selectedNamespace}
+                  >
+                    <option value="">Select</option>
+                    {namespaces
+                      .find(n => n['namespace-id'] === selectedNamespace)
+                      ?.['namespace-methods']
+                      ?.map((method) => (
+                        <option 
+                          key={method['namespace-method-id']}
+                          value={method['namespace-method-id']}
+                        >
+                          {method['namespace-method-name']}
+                        </option>
+                      )) || []}
+                  </select>
+                  <div className="absolute inset-y-0 right-1.5 flex items-center pointer-events-none">
+                    <ChevronDown size={12} className="text-gray-400" />
                   </div>
                 </div>
-                <div className="overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-24rem)] p-3 sm:p-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {filteredMethods.map((method) => (
-                      <div key={method['namespace-method-id']} 
-                        className="bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
-                        <div className="p-3 sm:p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="text-sm font-medium text-gray-900 truncate">
-                                  {method['namespace-method-name']}
-                                </h3>
-                                <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
-                                  method['namespace-method-type'] === 'GET' ? 'bg-green-100 text-green-700' :
-                                  method['namespace-method-type'] === 'POST' ? 'bg-blue-100 text-blue-700' :
-                                  method['namespace-method-type'] === 'PUT' ? 'bg-yellow-100 text-yellow-700' :
-                                  method['namespace-method-type'] === 'DELETE' ? 'bg-red-100 text-red-700' :
-                                  'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {method['namespace-method-type']}
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-500 truncate">
-                                ID: {method['namespace-method-id'].slice(0, 8)}...
-                              </p>
-                            </div>
-                          </div>
-
-                          {method['namespace-method-url-override'] && (
-                            <div className="flex items-center gap-1.5 text-gray-600 mb-2">
-                              <Globe size={12} />
-                              <p className="text-xs truncate">{method['namespace-method-url-override']}</p>
-                            </div>
-                          )}
-
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {method.tags && method.tags.slice(0, 2).map((tag: string, index: number) => (
-                              <span key={index} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full">
-                                {tag}
-                              </span>
-                            ))}
-                            {method.tags && method.tags.length > 2 && (
-                              <span className="px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[10px] rounded-full">
-                                +{method.tags.length - 2}
-                              </span>
-                            )}
-                          </div>
-
-                        
-                        </div>
-                      </div>
-                    ))}
-                    {filteredMethods.length === 0 && (
-                      <div className="col-span-full flex items-center justify-center py-8 text-gray-500 text-sm">
-                        No methods found
-                      </div>
-                    )}
-                  </div>
+                <div className="mt-0.5 sm:mt-1 flex items-center gap-0.5 sm:gap-1">
+                  <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-blue-500"></div>
+                  <span className="text-[8px] sm:text-xs text-gray-500">
+                    {selectedNamespace 
+                      ? `${namespaces.find(n => n['namespace-id'] === selectedNamespace)?.['namespace-methods']?.length || 0} available`
+                      : 'Select namespace'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1305,14 +1219,14 @@ const ApiService = () => {
             <div className="p-2 sm:p-4">
               <div className="flex flex-row gap-1.5 sm:gap-4 items-center">
                 {/* Method selector with colored badge */}
-                <div className="relative w-[60px] sm:w-[140px] shrink-0">
+                <div className="relative w-[80px] sm:w-[160px] shrink-0">
                   <button
                     onClick={() => document.querySelector('select')?.click()}
-                    className="w-full h-[30px] sm:h-[38px] bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 relative"
+                    className="w-full h-[34px] sm:h-[42px] bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 relative"
                     type="button"
                   >
                     {/* Method badge */}
-                    <span className={`absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 px-1 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium ${
+                    <span className={`absolute left-1.5 sm:left-2.5 top-1/2 -translate-y-1/2 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium ${
                       methodType === 'GET' ? 'bg-green-100 text-green-700' :
                       methodType === 'POST' ? 'bg-blue-100 text-blue-700' :
                       methodType === 'PUT' ? 'bg-yellow-100 text-yellow-700' :
@@ -1323,9 +1237,9 @@ const ApiService = () => {
                     </span>
 
                     {/* Dropdown arrow */}
-                    <div className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                      <ChevronDown size={10} className="sm:hidden" />
-                      <ChevronDown size={14} className="hidden sm:block" />
+                    <div className="absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 text-gray-500">
+                      <ChevronDown size={12} className="sm:hidden" />
+                      <ChevronDown size={16} className="hidden sm:block" />
                     </div>
                   </button>
 
@@ -1343,12 +1257,12 @@ const ApiService = () => {
                 </div>
 
                 {/* URL Input */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <input
                     type="text"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    className="w-full p-1.5 sm:p-2.5 text-[10px] sm:text-sm bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full h-[34px] sm:h-[42px] px-2.5 sm:px-3.5 text-[10px] sm:text-sm bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter URL"
                   />
                 </div>
@@ -1359,7 +1273,7 @@ const ApiService = () => {
                     type="number"
                     value={maxIterations}
                     onChange={(e) => setMaxIterations(e.target.value)}
-                    className="w-12 sm:w-24 p-1.5 sm:p-2.5 text-[10px] sm:text-sm bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-16 sm:w-20 h-[34px] sm:h-[42px] px-2 sm:px-2.5 text-[10px] sm:text-sm bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Max"
                     aria-label="Max iterations"
                   />
@@ -1368,24 +1282,26 @@ const ApiService = () => {
                     <button
                       onClick={() => handleExecute(false)}
                       disabled={isLoading}
-                      className={`p-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs rounded-lg transition-all duration-200 flex items-center gap-1 sm:gap-1.5 shadow-sm ${
+                      className={`w-[34px] h-[34px] sm:w-[42px] sm:h-[42px] rounded-lg transition-all duration-200 flex items-center justify-center shadow-sm ${
                         isLoading 
                           ? 'bg-gray-400 cursor-not-allowed' 
                           : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
                       }`}
                     >
-                      <Send size={12} />
+                      <Send size={14} className="sm:hidden" />
+                      <Send size={18} className="hidden sm:block" />
                     </button>
                     <button
                       onClick={() => handleExecute(true)}
                       disabled={isLoading}
-                      className={`p-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs rounded-lg transition-all duration-200 flex items-center gap-1 sm:gap-1.5 shadow-sm ${
+                      className={`w-[34px] h-[34px] sm:w-[42px] sm:h-[42px] rounded-lg transition-all duration-200 flex items-center justify-center shadow-sm ${
                         isLoading 
                           ? 'bg-gray-400 cursor-not-allowed' 
                           : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
                       }`}
                     >
-                      <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
+                      <RefreshCw size={14} className={`sm:hidden ${isLoading ? 'animate-spin' : ''}`} />
+                      <RefreshCw size={18} className={`hidden sm:block ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
                 </div>
