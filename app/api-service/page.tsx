@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Send, RefreshCw, Copy, Download, Check, Clock, X, Trash2, ChevronRight, ChevronDown } from 'react-feather';
+import { Send, RefreshCw, Copy, Download, Check, Clock, X, Trash2, ChevronRight, ChevronDown, Code, Minimize2, Maximize2, Database, Globe, Edit2 } from 'react-feather';
 import { useRouter } from 'next/navigation';
 
 interface KeyValuePair {
@@ -170,6 +170,9 @@ const ApiService = () => {
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [accountSearchQuery, setAccountSearchQuery] = useState('');
+  const [methodSearchQuery, setMethodSearchQuery] = useState('');
 
   // Add this type for items
   type ResponseItem = {
@@ -526,6 +529,7 @@ const ApiService = () => {
           // Construct table name from namespace and method
           const namespaceName = namespace['namespace-name'].toLowerCase().replace(/[^a-z0-9]/g, '_');
           const methodName = method['namespace-method-name'].toLowerCase().replace(/[^a-z0-9]/g, '_');
+          
           tableName = `${namespaceName}_${methodName}`;
           saveData = method['save-data'] || false;
         }
@@ -1044,247 +1048,417 @@ const ApiService = () => {
     console.log(`Completed saving ${items.length} items to DynamoDB`);
   };
 
+  const handleExpandResponse = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  // Add these type definitions near the top of the file
+  const filteredAccounts = namespaces.find(n => n['namespace-id'] === selectedNamespace)?.['namespace-accounts']?.filter(account => {
+    const searchLower = accountSearchQuery.toLowerCase();
+    return (
+      account['namespace-account-name'].toLowerCase().includes(searchLower) ||
+      account['namespace-account-url-override']?.toLowerCase().includes(searchLower) ||
+      account.tags?.some(tag => tag.toLowerCase().includes(searchLower))
+    );
+  }) || [];
+
+  const filteredMethods = namespaces.find(n => n['namespace-id'] === selectedNamespace)?.['namespace-methods']?.filter(method => {
+    const searchLower = methodSearchQuery.toLowerCase();
+    return (
+      method['namespace-method-name'].toLowerCase().includes(searchLower) ||
+      method['namespace-method-type'].toLowerCase().includes(searchLower) ||
+      method.tags?.some(tag => tag.toLowerCase().includes(searchLower))
+    );
+  }) || [];
+
+
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-hidden">
-        <div className="h-full p-2 flex flex-col gap-2 overflow-hidden">
-          <div className="bg-white rounded-lg shadow p-2 flex justify-between items-center shrink-0">
-            <h1 className="text-lg font-medium text-gray-800">API Client</h1>
-            <div className="flex items-center gap-2">
+        <div className="h-full p-1 sm:p-3 flex flex-col gap-1 sm:gap-2 overflow-hidden">
+          {/* Header */}
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-2 sm:p-3 flex justify-between items-center shrink-0 border border-gray-100">
+            <h1 className="text-sm sm:text-lg font-semibold text-gray-800 flex items-center gap-1.5 sm:gap-2">
+              <span className="bg-blue-500 text-white p-1 sm:p-1.5 rounded-lg shadow-sm">
+                <Send size={14} className="sm:hidden" />
+                <Send size={16} className="hidden sm:block" />
+              </span>
+              API Client
+            </h1>
+            <div className="flex items-center gap-1 sm:gap-3">
               <button
                 onClick={handleClearForm}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors duration-200"
-                title="Clear all fields"
+                className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-2 text-[10px] sm:text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 border border-gray-100"
               >
-                <X size={14} />
-                Clear All
+                <X size={12} className="sm:hidden" />
+                <X size={14} className="hidden sm:block" />
+                <span className="hidden sm:inline">Clear All</span>
               </button>
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className={`p-2 rounded transition-all duration-200 ${
+                className={`p-1 sm:p-2 rounded-lg transition-all duration-200 ${
                   showHistory 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                    ? 'bg-blue-50 text-blue-600 border border-blue-200' 
+                    : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 border border-gray-100'
                 }`}
-                title="View History"
               >
-                <Clock size={20} />
+                <Clock size={14} className="sm:hidden" />
+                <Clock size={18} className="hidden sm:block" />
               </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Namespace <span className="text-gray-400">(optional)</span>
+          {/* Namespace, Account, Method Selection Section */}
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-2 sm:p-6 border border-gray-100">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-4">
+              {/* Namespace Selection */}
+              <div className="relative group">
+                <label className="block text-[10px] sm:text-sm font-medium mb-1 sm:mb-2 text-gray-700 group-hover:text-blue-600 transition-colors duration-200">
+                  Namespace
+                  <span className="ml-0.5 text-[8px] sm:text-xs text-gray-400 font-normal">(optional)</span>
                 </label>
-                <select
-                  value={selectedNamespace}
-                  onChange={handleNamespaceChange}
-                  className="w-full p-2 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option key="namespace-default" value="">Select Namespace</option>
-                  {Array.isArray(namespaces) && namespaces.length > 0 ? (
-                    namespaces.map((namespace, index) => (
-                      <option 
-                        key={`namespace-${namespace['namespace-id']}`}
-                        value={namespace['namespace-id']}
-                      >
-                        {namespace['namespace-name']}
-                      </option>
-                    ))
-                  ) : (
-                    <option key="no-namespaces" value="" disabled>
-                      No namespaces available
-                    </option>
-                  )}
-                </select>
-                {/* Debug info */}
-                <div className="text-xs text-gray-500 mt-1">
-                  {`${namespaces.length} namespace(s) loaded`}
+                <div className="relative">
+                  <select
+                    value={selectedNamespace}
+                    onChange={handleNamespaceChange}
+                    className="w-full p-1.5 sm:p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-[10px] sm:text-sm shadow-sm appearance-none cursor-pointer hover:bg-gray-100 transition-all duration-200"
+                  >
+                    <option value="">Select</option>
+                    {Array.isArray(namespaces) && namespaces.length > 0 ? (
+                      namespaces.map((namespace) => (
+                        <option 
+                          key={`namespace-${namespace['namespace-id']}`}
+                          value={namespace['namespace-id']}
+                        >
+                          {namespace['namespace-name']}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>None</option>
+                    )}
+                  </select>
+                  <div className="absolute inset-y-0 right-1.5 flex items-center pointer-events-none">
+                    <ChevronDown size={12} className="text-gray-400" />
+                  </div>
+                </div>
+                <div className="mt-0.5 sm:mt-1 flex items-center gap-0.5 sm:gap-1">
+                  <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-blue-500"></div>
+                  <span className="text-[8px] sm:text-xs text-gray-500">
+                    {`${namespaces.length} loaded`}
+                  </span>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Account <span className="text-gray-400">(optional)</span>
-                </label>
-                <select
-                  value={selectedAccount}
-                  onChange={handleAccountChange}
-                  className="w-full p-2 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={!selectedNamespace}
-                >
-                  <option key="account-default" value="">Select Account</option>
-                  {namespaces
-                    .find(n => n['namespace-id'] === selectedNamespace)
-                    ?.['namespace-accounts']
-                    ?.map((account, index) => (
-                      <option 
-                        key={account['namespace-account-id'] ? `account-${account['namespace-account-id']}` : `account-index-${index}`} 
-                        value={account['namespace-account-id'] || ''}
-                      >
-                        {account['namespace-account-name'] || 'Unnamed Account'}
-                      </option>
-                    )) || []}
-                </select>
+              {/* Accounts Section */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-3 sm:p-4 border-b border-gray-100">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <h2 className="text-lg font-semibold text-gray-900">Accounts</h2>
+                    <div className="relative flex-1 w-full">
+                      <input
+                        type="text"
+                        placeholder="Search accounts..."
+                        value={accountSearchQuery}
+                        onChange={(e) => setAccountSearchQuery(e.target.value)}
+                        className="w-full px-3 py-1.5 pl-8 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <svg className="h-4 w-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-24rem)] p-3 sm:p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {filteredAccounts.map((account) => (
+                      <div key={account['namespace-account-id']} 
+                        className="bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                        <div className="p-3 sm:p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-sm font-medium text-gray-900 truncate">
+                                {account['namespace-account-name']}
+                              </h3>
+                              <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                ID: {account['namespace-account-id'].slice(0, 8)}...
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {account['namespace-account-url-override'] && (
+                            <div className="flex items-center gap-1.5 text-gray-600 mb-2">
+                              <Globe size={12} />
+                              <p className="text-xs truncate">{account['namespace-account-url-override']}</p>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {account.tags && account.tags.slice(0, 2).map((tag: string, index: number) => (
+                              <span key={index} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full">
+                                {tag}
+                              </span>
+                            ))}
+                            {account.tags && account.tags.length > 2 && (
+                              <span className="px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[10px] rounded-full">
+                                +{account.tags.length - 2}
+                              </span>
+                            )}
+                          </div>
+
+                        
+                        </div>
+                      </div>
+                    ))}
+                    {filteredAccounts.length === 0 && (
+                      <div className="col-span-full flex items-center justify-center py-8 text-gray-500 text-sm">
+                        No accounts found
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Method <span className="text-gray-400">(optional)</span>
-                </label>
-                <select
-                  value={selectedMethod}
-                  onChange={handleMethodChange}
-                  className="w-full p-2 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={!selectedNamespace}
-                >
-                  <option key="method-default" value="">Select Method</option>
-                  {namespaces
-                    .find(n => n['namespace-id'] === selectedNamespace)
-                    ?.['namespace-methods']
-                    ?.map((method, index) => {
-                      // console.log('Method in dropdown:', method); // Debug log
-                      return (
-                        <option 
-                          key={method['namespace-method-id'] || `method-index-${index}`}
-                          value={method['namespace-method-id'] || ''}
-                        >
-                          {method['namespace-method-name'] || 'Unnamed Method'}
-                        </option>
-                      );
-                    }) || []}
-                </select>
-                {/* Debug info */}
-                <div className="text-xs text-gray-500 mt-1">
-                  {`${namespaces.find(n => n['namespace-id'] === selectedNamespace)?.['namespace-methods']?.length || 0} method(s) loaded`}
+              {/* Method Selection */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-3 sm:p-4 border-b border-gray-100">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <h2 className="text-lg font-semibold text-gray-900">Methods</h2>
+                    <div className="relative flex-1 w-full">
+                      <input
+                        type="text"
+                        placeholder="Search methods..."
+                        value={methodSearchQuery}
+                        onChange={(e) => setMethodSearchQuery(e.target.value)}
+                        className="w-full px-3 py-1.5 pl-8 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <svg className="h-4 w-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-24rem)] p-3 sm:p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {filteredMethods.map((method) => (
+                      <div key={method['namespace-method-id']} 
+                        className="bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                        <div className="p-3 sm:p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-sm font-medium text-gray-900 truncate">
+                                  {method['namespace-method-name']}
+                                </h3>
+                                <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
+                                  method['namespace-method-type'] === 'GET' ? 'bg-green-100 text-green-700' :
+                                  method['namespace-method-type'] === 'POST' ? 'bg-blue-100 text-blue-700' :
+                                  method['namespace-method-type'] === 'PUT' ? 'bg-yellow-100 text-yellow-700' :
+                                  method['namespace-method-type'] === 'DELETE' ? 'bg-red-100 text-red-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {method['namespace-method-type']}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 truncate">
+                                ID: {method['namespace-method-id'].slice(0, 8)}...
+                              </p>
+                            </div>
+                          </div>
+
+                          {method['namespace-method-url-override'] && (
+                            <div className="flex items-center gap-1.5 text-gray-600 mb-2">
+                              <Globe size={12} />
+                              <p className="text-xs truncate">{method['namespace-method-url-override']}</p>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {method.tags && method.tags.slice(0, 2).map((tag: string, index: number) => (
+                              <span key={index} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full">
+                                {tag}
+                              </span>
+                            ))}
+                            {method.tags && method.tags.length > 2 && (
+                              <span className="px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[10px] rounded-full">
+                                +{method.tags.length - 2}
+                              </span>
+                            )}
+                          </div>
+
+                        
+                        </div>
+                      </div>
+                    ))}
+                    {filteredMethods.length === 0 && (
+                      <div className="col-span-full flex items-center justify-center py-8 text-gray-500 text-sm">
+                        No methods found
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-4">
-              <div className="flex gap-4 items-center">
-                <select
-                  value={methodType}
-                  onChange={handleMethodTypeChange}
-                  className="p-2 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option key="method-get" value="GET">GET</option>
-                  <option key="method-post" value="POST">POST</option>
-                  <option key="method-put" value="PUT">PUT</option>
-                  <option key="method-delete" value="DELETE">DELETE</option>
-                  <option key="method-patch" value="PATCH">PATCH</option>
-                </select>
-                <input
-                  type="text"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="flex-1 p-2 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter URL"
-                />
-                <input
-                  type="number"
-                  value={maxIterations}
-                  onChange={(e) => setMaxIterations(e.target.value)}
-                  className="w-32 p-2 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Max iterations"
-                  aria-label="Max iterations"
-                />
-                <button
-                  onClick={() => handleExecute(false)}
-                  disabled={isLoading}
-                  className={`px-4 py-2 rounded transition-all duration-200 flex items-center gap-2 ${
-                    isLoading 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  <Send size={16} /> Send
-                </button>
-                <button
-                  onClick={() => handleExecute(true)}
-                  disabled={isLoading}
-                  className={`px-4 py-2 rounded transition-all duration-200 flex items-center gap-2 ${
-                    isLoading 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} /> Send Loop
-                </button>
+          {/* Method Type and URL Section */}
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100">
+            <div className="p-2 sm:p-4">
+              <div className="flex flex-row gap-1.5 sm:gap-4 items-center">
+                {/* Method selector with colored badge */}
+                <div className="relative w-[60px] sm:w-[140px] shrink-0">
+                  <button
+                    onClick={() => document.querySelector('select')?.click()}
+                    className="w-full h-[30px] sm:h-[38px] bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 relative"
+                    type="button"
+                  >
+                    {/* Method badge */}
+                    <span className={`absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 px-1 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium ${
+                      methodType === 'GET' ? 'bg-green-100 text-green-700' :
+                      methodType === 'POST' ? 'bg-blue-100 text-blue-700' :
+                      methodType === 'PUT' ? 'bg-yellow-100 text-yellow-700' :
+                      methodType === 'DELETE' ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {methodType}
+                    </span>
+
+                    {/* Dropdown arrow */}
+                    <div className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                      <ChevronDown size={10} className="sm:hidden" />
+                      <ChevronDown size={14} className="hidden sm:block" />
+                    </div>
+                  </button>
+
+                  <select
+                    value={methodType}
+                    onChange={handleMethodTypeChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  >
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                  </select>
+                </div>
+
+                {/* URL Input */}
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    className="w-full p-1.5 sm:p-2.5 text-[10px] sm:text-sm bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter URL"
+                  />
+                </div>
+
+                {/* Max Iterations and Action Buttons */}
+                <div className="flex gap-1.5 sm:gap-2">
+                  <input
+                    type="number"
+                    value={maxIterations}
+                    onChange={(e) => setMaxIterations(e.target.value)}
+                    className="w-12 sm:w-24 p-1.5 sm:p-2.5 text-[10px] sm:text-sm bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Max"
+                    aria-label="Max iterations"
+                  />
+                  
+                  <div className="flex gap-1 sm:gap-2">
+                    <button
+                      onClick={() => handleExecute(false)}
+                      disabled={isLoading}
+                      className={`p-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs rounded-lg transition-all duration-200 flex items-center gap-1 sm:gap-1.5 shadow-sm ${
+                        isLoading 
+                          ? 'bg-gray-400 cursor-not-allowed' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
+                      }`}
+                    >
+                      <Send size={12} />
+                    </button>
+                    <button
+                      onClick={() => handleExecute(true)}
+                      disabled={isLoading}
+                      className={`p-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs rounded-lg transition-all duration-200 flex items-center gap-1 sm:gap-1.5 shadow-sm ${
+                        isLoading 
+                          ? 'bg-gray-400 cursor-not-allowed' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
+                      }`}
+                    >
+                      <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="border-t border-gray-200">
-              <div className="flex border-b border-gray-200">
+            <div className="border-t border-gray-100">
+              <div className="flex overflow-x-auto border-b border-gray-100">
                 <button
                   onClick={() => setActiveTab('params')}
-                  className={`px-4 py-2 font-medium text-sm ${
+                  className={`px-3 sm:px-4 py-2 font-medium text-[10px] sm:text-sm whitespace-nowrap ${
                     activeTab === 'params'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  Params
+                  Parameters
                 </button>
                 <button
                   onClick={() => setActiveTab('headers')}
-                  className={`px-4 py-2 font-medium text-sm ${
+                  className={`px-3 sm:px-4 py-2 font-medium text-[10px] sm:text-sm whitespace-nowrap ${
                     activeTab === 'headers'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   Headers
                 </button>
                 <button
                   onClick={() => setActiveTab('body')}
-                  className={`px-4 py-2 font-medium text-sm ${
+                  className={`px-3 sm:px-4 py-2 font-medium text-[10px] sm:text-sm whitespace-nowrap ${
                     activeTab === 'body'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   Body
                 </button>
               </div>
 
-              <div className="p-4">
+              <div className="p-2 sm:p-4">
                 {activeTab === 'params' && (
                   <div className="space-y-2">
                     {queryParams.map((param, index) => (
-                      <div key={index} className="flex gap-2">
+                      <div key={index} className="flex flex-col sm:flex-row gap-2 bg-gray-50 p-2 sm:p-3 rounded-lg border border-gray-100">
                         <input
                           type="text"
                           value={param.key}
                           onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'queryParams')}
-                          className="flex-1 p-2 border border-gray-200 rounded"
+                          className="flex-1 p-2 sm:p-2.5 text-xs sm:text-sm border border-gray-200 rounded-lg shadow-sm"
                           placeholder="Key"
                         />
                         <input
                           type="text"
                           value={param.value}
                           onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'queryParams')}
-                          className="flex-1 p-2 border border-gray-200 rounded"
+                          className="flex-1 p-2 sm:p-2.5 text-xs sm:text-sm border border-gray-200 rounded-lg shadow-sm"
                           placeholder="Value"
                         />
                         <button
                           onClick={() => handleRemoveKeyValuePair(index, 'queryParams')}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded"
+                          className="p-1 sm:p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors duration-200"
                         >
-                          Remove
+                          <Trash2 size={12} className="sm:hidden" />
+                          <Trash2 size={14} className="hidden sm:block" />
                         </button>
                       </div>
                     ))}
                     <button
                       onClick={() => handleAddKeyValuePair('queryParams')}
-                      className="text-sm text-blue-600 hover:text-blue-700"
+                      className="mt-2 flex items-center gap-1 text-[10px] sm:text-sm text-blue-600 hover:text-blue-700 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                     >
-                      + Add Parameter
+                      <span className="text-base sm:text-lg font-semibold">+</span> Add Parameter
                     </button>
                   </div>
                 )}
@@ -1292,34 +1466,35 @@ const ApiService = () => {
                 {activeTab === 'headers' && (
                   <div className="space-y-2">
                     {headers.map((header, index) => (
-                      <div key={index} className="flex gap-2">
+                      <div key={index} className="flex flex-col sm:flex-row gap-2 bg-gray-50 p-2 sm:p-3 rounded-lg border border-gray-100">
                         <input
                           type="text"
                           value={header.key}
                           onChange={(e) => handleHeaderKeyChange(header, index)}
-                          className="flex-1 p-2 border border-gray-200 rounded"
+                          className="flex-1 p-2 sm:p-2.5 text-xs sm:text-sm border border-gray-200 rounded-lg shadow-sm"
                           placeholder="Key"
                         />
                         <input
                           type="text"
                           value={header.value}
                           onChange={(e) => handleHeaderValueChange(header, index)}
-                          className="flex-1 p-2 border border-gray-200 rounded"
+                          className="flex-1 p-2 sm:p-2.5 text-xs sm:text-sm border border-gray-200 rounded-lg shadow-sm"
                           placeholder="Value"
                         />
                         <button
                           onClick={() => handleDeleteHeader(header, index)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded"
+                          className="p-1 sm:p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors duration-200"
                         >
-                          Remove
+                          <Trash2 size={12} className="sm:hidden" />
+                          <Trash2 size={14} className="hidden sm:block" />
                         </button>
                       </div>
                     ))}
                     <button
                       onClick={() => handleAddKeyValuePair('headers')}
-                      className="text-sm text-blue-600 hover:text-blue-700"
+                      className="mt-2 flex items-center gap-1 text-[10px] sm:text-sm text-blue-600 hover:text-blue-700 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                     >
-                      + Add Header
+                      <span className="text-base sm:text-lg font-semibold">+</span> Add Header
                     </button>
                   </div>
                 )}
@@ -1329,7 +1504,7 @@ const ApiService = () => {
                     <textarea
                       value={requestBody}
                       onChange={(e) => setRequestBody(e.target.value)}
-                      className="w-full h-48 p-2 font-mono text-sm border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full h-28 sm:h-36 p-2 sm:p-3 font-mono text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter request body (JSON)"
                     />
                   </div>
@@ -1338,65 +1513,63 @@ const ApiService = () => {
             </div>
           </div>
 
-          
-
-          <div className="flex-1 min-h-0 w-[82VW] overflow-scroll">
+          <div className="flex-1 min-h-0 w-full overflow-hidden">
             {response && (
-              <div className="space-y-4 overflow-auto">
-                <div className="bg-white rounded-lg shadow h-full flex flex-col overflow-hidden">
-                  <div className="flex justify-between items-center border-b border-gray-200 shrink-0 overflow-auto">
-                    <div className="flex overflow-auto">
+              <div className="space-y-4 h-full overflow-auto">
+                <div className="bg-white rounded-xl shadow-md h-full flex flex-col overflow-hidden border border-gray-100">
+                  <div className="flex justify-between items-center border-b border-gray-100 shrink-0 overflow-x-auto">
+                    <div className="flex overflow-x-auto">
                       <button
                         onClick={() => setResponseTab('body')}
-                        className={`px-4 py-2 font-medium text-sm ${
+                        className={`px-4 py-2.5 font-medium text-xs sm:text-sm whitespace-nowrap ${
                           responseTab === 'body'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                         }`}
                       >
-                        Response Body
+                        Body
                       </button>
                       <button
                         onClick={() => setResponseTab('headers')}
-                        className={`px-4 py-2 font-medium text-sm ${
+                        className={`px-4 py-2.5 font-medium text-xs sm:text-sm whitespace-nowrap ${
                           responseTab === 'headers'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                         }`}
                       >
-                        Response Headers
+                        Headers
                       </button>
                       <button
                         onClick={() => setResponseTab('schema')}
-                        className={`px-4 py-2 font-medium text-sm ${
+                        className={`px-4 py-2.5 font-medium text-xs sm:text-sm whitespace-nowrap ${
                           responseTab === 'schema'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                         }`}
                       >
-                        Response Schema
+                        Schema
                       </button>
                     </div>
-                    <div className="flex items-center gap-4 px-4">
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    <div className="flex items-center gap-2 sm:gap-4 px-2 sm:px-4">
+                      <div className={`px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium ${
                         response.status >= 200 && response.status < 300
                           ? 'bg-green-100 text-green-800'
-                          : response.status >= 400 && response.status < 500
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
+                          : response.status >= 400
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        Status: {response.status}
+                        {response.status}
                       </div>
                       <button
                         onClick={handleCopyResponse}
-                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
+                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
                         title={`Copy ${responseTab}`}
                       >
                         {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                       </button>
                       <button
                         onClick={handleDownloadResponse}
-                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
+                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
                         title={`Download ${responseTab}`}
                       >
                         <Download size={16} />
@@ -1404,100 +1577,111 @@ const ApiService = () => {
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-0 p-4 overflow-hidden">
+                  <div className="flex-1 min-h-0 p-3 sm:p-4 overflow-hidden">
                     {responseTab === 'body' ? (
-                      <div className="bg-gray-50 p-4 rounded h-full overflow-auto font-mono text-sm">
-                        <JSONTree data={response.body} />
+                      <div className="bg-gray-50 p-3 sm:p-4 rounded-lg h-full overflow-auto border border-gray-100">
+                        <div className="font-mono text-xs sm:text-sm break-all whitespace-pre-wrap max-w-full">
+                          <JSONTree data={response.body} />
+                        </div>
                       </div>
                     ) : responseTab === 'headers' ? (
-                      <div className="bg-gray-50 p-4 rounded h-full overflow-auto font-mono text-sm">
-                        <div className="space-y-2">
+                      <div className="bg-gray-50 p-3 sm:p-4 rounded-lg h-full overflow-auto border border-gray-100">
+                        <div className="space-y-2.5 font-mono text-xs sm:text-sm">
                           {Object.entries(response.rawHeaders || {}).map(([key, value]) => (
-                            <div key={key} className="flex">
-                              <span className="text-blue-600 font-semibold min-w-[200px]">{key}:</span>
+                            <div key={key} className="flex flex-col sm:flex-row p-2 border-b border-gray-100">
+                              <span className="text-blue-600 font-semibold sm:min-w-[200px] break-all">{key}:</span>
                               <span className="text-gray-700 break-all">{String(value)}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-gray-50 p-4 rounded h-full overflow-auto font-mono text-sm">
-                        <JSONTree data={generateResponseSchema(response.body)} />
+                      <div className="bg-gray-50 p-3 sm:p-4 rounded-lg h-full overflow-auto border border-gray-100">
+                        <div className="font-mono text-xs sm:text-sm break-all whitespace-pre-wrap max-w-full">
+                          <JSONTree data={generateResponseSchema(response.body)} />
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
             )}
-            
           </div>
         </div>
       </div>
 
       <div 
-        className={`bg-white w-96 border-l border-gray-200 transition-all duration-300 transform ${
+        className={`bg-white w-full sm:w-80 md:w-96 border-l border-gray-200 transition-all duration-300 transform ${
           showHistory ? 'translate-x-0' : 'translate-x-full'
         } fixed right-0 top-0 h-full z-50 shadow-2xl`}
       >
         <div className="h-full flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+          <div className="p-3 sm:p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-white">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowHistory(false)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors duration-200"
+                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 title="Collapse History"
               >
-                <ChevronRight size={20} className="text-gray-500" />
+                <ChevronRight size={18} className="text-gray-500" />
               </button>
-              <h2 className="text-lg font-medium text-gray-800">Request History</h2>
+              <h2 className="text-base sm:text-lg font-medium text-gray-800">Request History</h2>
             </div>
             <button
               onClick={handleClearHistory}
-              className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
+              className="text-xs sm:text-sm text-red-600 hover:text-red-700 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
             >
               <Trash2 size={14} />
-              Clear History
+              Clear
             </button>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-2">
+          <div className="flex-1 overflow-y-auto p-3">
             {history.length === 0 ? (
-              <div className="text-center text-gray-500 mt-4">
-                No request history available
+              <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 mt-4 text-sm space-y-2">
+                <Clock size={48} className="text-gray-300" />
+                <p>No request history available</p>
+                <p className="text-xs text-gray-400">Previous requests will appear here</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {history.map((entry) => (
                   <div
                     key={entry.id}
                     onClick={() => loadHistoryEntry(entry)}
-                    className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 relative group"
+                    className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 hover:shadow-sm relative group border border-gray-100 transition-all"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`px-2 py-0.5 text-xs rounded ${
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${
                         entry.response.status >= 200 && entry.response.status < 300
                           ? 'bg-green-100 text-green-800'
                           : entry.response.status >= 400
                           ? 'bg-red-100 text-red-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        Status: {entry.response.status}
+                        {entry.response.status}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-[10px] sm:text-xs text-gray-500">
                         {new Date(entry.timestamp).toLocaleString()}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-blue-600">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5">
+                      <span className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded ${
+                        entry.method === 'GET' ? 'bg-green-50 text-green-700' :
+                        entry.method === 'POST' ? 'bg-blue-50 text-blue-700' :
+                        entry.method === 'PUT' ? 'bg-yellow-50 text-yellow-700' :
+                        entry.method === 'DELETE' ? 'bg-red-50 text-red-700' :
+                        'bg-gray-50 text-gray-700'
+                      }`}>
                         {entry.method}
                       </span>
-                      <span className="text-sm text-gray-600 truncate flex-1">
+                      <span className="text-xs sm:text-sm text-gray-600 truncate flex-1">
                         {entry.url}
                       </span>
                     </div>
                     <button
                       onClick={(e) => handleDeleteHistoryEntry(entry.id, e)}
-                      className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-full hover:bg-red-50"
                     >
                       <X size={14} />
                     </button>

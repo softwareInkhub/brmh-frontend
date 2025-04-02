@@ -1,26 +1,27 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layers, Settings, ChevronRight, Database, Code, Package, Server, ChevronLeft, Menu, X } from 'react-feather';
+import { Layers, Settings, ChevronRight, Database, Code, Package, Server, ChevronLeft, X, Globe, Cloud, FileText, Activity } from 'react-feather';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
   activeNamespace?: string;
   onCollapse?: (collapsed: boolean) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeNamespace, onCollapse }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeNamespace, onCollapse, isOpen, onClose }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
   // Handle screen resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setIsCollapsed(true);
-        onCollapse?.(true);
+        setIsCollapsed(false); // Show full sidebar on mobile
+        onCollapse?.(false);
       }
     };
 
@@ -36,37 +37,30 @@ const Sidebar: React.FC<SidebarProps> = ({ activeNamespace, onCollapse }) => {
     onCollapse?.(isCollapsed);
   }, [isCollapsed, onCollapse]);
 
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
+  const handleCollapseToggle = () => {
+    setIsCollapsed((prev) => !prev);
+    onCollapse?.(!isCollapsed);
+  };
+
+  const handleOptionClick = () => {
+    if (window.innerWidth < 768) {
+      onClose?.();
+    }
+  };
 
   const NavLinks = () => (
     <>
-      {/* <div className={`px-4 mb-4 transition-opacity duration-300 ${
-        isCollapsed && !isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
-      }`}>
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Main</span>
-      </div> */}
-
       <Link 
         href="/namespace"
         className={`flex items-center gap-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-200 ${
           pathname === '/namespace' ? 'bg-gray-800 text-white' : ''
         }`}
         title="Namespaces"
+        onClick={handleOptionClick}
       >
         <Layers size={18} className="min-w-[18px]" />
-        <span className={`whitespace-nowrap transition-opacity duration-300 ${
-          isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-        }`}>Namespaces</span>
+        {!isCollapsed && <span className="whitespace-nowrap">Namespaces</span>}
       </Link>
-{/* 
-      <div className={`px-4 mt-6 mb-4 transition-opacity duration-300 ${
-        isCollapsed && !isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
-      }`}>
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">API</span>
-      </div> */}
 
       <Link 
         href="/api-service"
@@ -74,11 +68,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeNamespace, onCollapse }) => {
           pathname === '/api-service' ? 'bg-gray-800 text-white' : ''
         }`}
         title="API Services"
+        onClick={handleOptionClick}
       >
-        <Server size={18} className="min-w-[18px]" />
-        <span className={`whitespace-nowrap transition-opacity duration-300 ${
-          isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-        }`}>API Services</span>
+        <Globe size={18} className="min-w-[18px]" />
+        {!isCollapsed && <span className="whitespace-nowrap">API Services</span>}
       </Link>
       <Link 
         href="/aws-services"
@@ -86,11 +79,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeNamespace, onCollapse }) => {
           pathname === '/aws-services' ? 'bg-gray-800 text-white' : ''
         }`}
         title="AWS Services"
+        onClick={handleOptionClick}
       >
-        <Server size={18} className="min-w-[18px]" />
-        <span className={`whitespace-nowrap transition-opacity duration-300 ${
-          isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-        }`}>AWS Services</span>
+        <Cloud size={18} className="min-w-[18px]" />
+        {!isCollapsed && <span className="whitespace-nowrap">AWS Services</span>}
       </Link>
       <Link 
         href="/database"
@@ -98,23 +90,21 @@ const Sidebar: React.FC<SidebarProps> = ({ activeNamespace, onCollapse }) => {
           pathname === '/database-services' ? 'bg-gray-800 text-white' : ''
         }`}
         title="Database Services"
+        onClick={handleOptionClick}
       >
-        <Server size={18} className="min-w-[18px]" />
-        <span className={`whitespace-nowrap transition-opacity duration-300 ${
-          isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-        }`}>Database</span>
+        <Database size={18} className="min-w-[18px]" />
+        {!isCollapsed && <span className="whitespace-nowrap">Database</span>}
       </Link>
       <Link 
         href="/yaml"
         className={`flex items-center gap-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-200 ${
           pathname === '/yaml' ? 'bg-gray-800 text-white' : ''
         }`}
-        title="Database Services"
+        title="YAML"
+        onClick={handleOptionClick}
       >
-        <Server size={18} className="min-w-[18px]" />
-        <span className={`whitespace-nowrap transition-opacity duration-300 ${
-          isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-        }`}>YAML</span>
+        <FileText size={18} className="min-w-[18px]" />
+        {!isCollapsed && <span className="whitespace-nowrap">YAML</span>}
       </Link>
       
       <Link 
@@ -122,98 +112,62 @@ const Sidebar: React.FC<SidebarProps> = ({ activeNamespace, onCollapse }) => {
         className={`flex items-center gap-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-200 ${
           pathname === '/executions' ? 'bg-gray-800 text-white' : ''
         }`}
-        title="Database Services"
+        title="Executions"
+        onClick={handleOptionClick}
       >
-        <Server size={18} className="min-w-[18px]" />
-        <span className={`whitespace-nowrap transition-opacity duration-300 ${
-          isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-        }`}>Executions</span>
+        <Activity size={18} className="min-w-[18px]" />
+        {!isCollapsed && <span className="whitespace-nowrap">Executions</span>}
       </Link>
-      
-
-      {/* <div className={`px-4 mt-6 mb-4 transition-opacity duration-300 ${
-        isCollapsed && !isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
-      }`}>
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tools</span>
-      </div> */}
-
-      {/* <Link 
-        href="/api-tester"
-        className={`flex items-center gap-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-200 ${
-          pathname === '/api-tester' ? 'bg-gray-800 text-white' : ''
-        }`}
-        title="API Tester"
-      >
-        <Code size={18} className="min-w-[18px]" />
-        <span className={`whitespace-nowrap transition-opacity duration-300 ${
-          isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-        }`}>API Tester</span>
-      </Link>
-
-      <Link 
-        href="/database"
-        className={`flex items-center gap-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-200 ${
-          pathname === '/database' ? 'bg-gray-800 text-white' : ''
-        }`}
-        title="Database"
-      >
-        <Database size={18} className="min-w-[18px]" />
-        <span className={`whitespace-nowrap transition-opacity duration-300 ${
-          isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-        }`}>Database</span>
-      </Link> */}
     </>
   );
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors duration-200"
-      >
-        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
+      {/* Mobile Overlay */}
+      {isOpen && (
         <div 
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setIsMobileMenuOpen(false)}
+          className="md:hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-30"
+          onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
       <div 
         className={`
-          ${isCollapsed && !isMobileMenuOpen ? 'w-20' : 'w-64'}
-          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${isCollapsed ? 'w-16' : 'w-56'}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           h-screen bg-gray-900 text-white fixed left-0 top-0 z-40 flex flex-col
-          transition-all duration-300 ease-in-out
+          transition-all duration-300 ease-in-out overflow-hidden
         `}
       >
         {/* Logo/Brand Section */}
-        <div className="p-6 border-b border-gray-800 flex justify-between items-center">
+        <div className="p-4 border-b border-gray-800 flex justify-between items-center">
           <div className="flex items-center gap-3 overflow-hidden">
-            <Package size={24} className="text-blue-400 min-w-[24px]" />
-            <span className={`text-xl font-semibold whitespace-nowrap transition-opacity duration-300 ${
-              isCollapsed && !isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
-            }`}>API Client</span>
+            <Package size={22} className="text-blue-400 min-w-[22px]" />
+            {!isCollapsed && (
+              <span className="text-lg font-semibold whitespace-nowrap">BRMH</span>
+            )}
           </div>
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden md:block p-1 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+            onClick={handleCollapseToggle}
+            className="p-2 rounded-lg hover:bg-gray-800 transition-colors duration-200 md:block hidden"
           >
             {isCollapsed ? (
-              <ChevronRight size={20} className="text-gray-400" />
+              <ChevronRight size={18} className="text-gray-400" />
             ) : (
-              <ChevronLeft size={20} className="text-gray-400" />
+              <ChevronLeft size={18} className="text-gray-400" />
             )}
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-gray-800 transition-colors duration-200 md:hidden"
+          >
+            <X size={18} className="text-gray-400" />
           </button>
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 py-4 no-scrollbar">
+        <nav className="flex-1 py-4 overflow-y-auto no-scrollbar">
           <NavLinks />
         </nav>
 
@@ -225,11 +179,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeNamespace, onCollapse }) => {
               pathname === '/settings' ? 'bg-gray-800 text-white' : ''
             }`}
             title="Settings"
+            onClick={handleOptionClick}
           >
             <Settings size={18} className="min-w-[18px]" />
-            <span className={`whitespace-nowrap transition-opacity duration-300 ${
-              isCollapsed && !isMobileMenuOpen ? 'opacity-0 w-0' : 'opacity-100'
-            }`}>Settings</span>
+            {!isCollapsed && (
+              <span className="whitespace-nowrap">Settings</span>
+            )}
           </Link>
         </div>
       </div>

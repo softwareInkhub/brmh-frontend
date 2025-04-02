@@ -511,11 +511,11 @@ const NamespacePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="p-6 md:p-8 max-w-[1920px] mx-auto">
+      <div className="p-3 sm:p-6 md:p-8 max-w-[1920px] mx-auto">
         {/* Header Section */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="flex-1">
-            <div className="relative">
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
               <input
                 type="text"
                 placeholder="Search namespaces..."
@@ -540,76 +540,83 @@ const NamespacePage = () => {
                 </button>
               )}
             </div>
+            <button
+              onClick={() => {
+                setEditingNamespace(null);
+                setNewNamespace({
+                  'namespace-name': '',
+                  'namespace-url': '',
+                  tags: []
+                });
+                setIsAddingNamespace(true);
+              }}
+              className="p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md flex items-center justify-center"
+              title="Create Namespace"
+            >
+              <Plus size={20} />
+            </button>
           </div>
-          <button
-            onClick={() => {
-              setEditingNamespace(null);
-              setNewNamespace({
-                'namespace-name': '',
-                'namespace-url': '',
-                tags: []
-              });
-              setIsAddingNamespace(true);
-            }}
-            className="p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md flex items-center justify-center"
-            title="Create Namespace"
-          >
-            <Plus size={20} />
-          </button>
         </div>
 
         {/* Namespaces Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4 mb-8">
-          {filteredNamespaces.length > 0 ? (
-            filteredNamespaces.map((namespace) => (
-              <div 
-                key={namespace['namespace-id']} 
-                className={`bg-white rounded-lg shadow-sm border ${
-                  selectedNamespace?.['namespace-id'] === namespace['namespace-id']
-                    ? 'border-blue-500'
-                    : 'border-gray-100'
-                } px-3 py-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer group relative`}
-                onClick={(e) => handleNamespaceClick(namespace, e)}
-              >
-                <h2 className="text-sm font-medium text-gray-800 truncate pr-14 group-hover:text-blue-600 transition-colors">
-                  {namespace['namespace-name'] || 'Unnamed Namespace'}
-                </h2>
-                <div 
-                  className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1"
-                >
-                  <button
-                    onClick={(e) => handleEditClick(namespace, e)}
-                    className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-all"
-                    title="Edit Namespace"
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="p-3 sm:p-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">Namespaces</h2>
+          </div>
+          <div className="overflow-y-auto max-h-[180px] sm:max-h-[200px] p-3 sm:p-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
+              {filteredNamespaces.length > 0 ? (
+                filteredNamespaces.map((namespace) => (
+                  <div 
+                    key={namespace['namespace-id']} 
+                    className={`bg-white rounded-lg shadow-sm border ${
+                      selectedNamespace?.['namespace-id'] === namespace['namespace-id']
+                        ? 'border-blue-500'
+                        : 'border-gray-100'
+                    } px-2 py-2 sm:px-3 sm:py-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer group relative`}
+                    onClick={(e) => handleNamespaceClick(namespace, e)}
                   >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => handleDeleteNamespace(namespace['namespace-id'], e)}
-                    className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-all"
-                    title="Delete Namespace"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                    <h2 className="text-xs sm:text-sm font-medium text-gray-800 truncate pr-8 sm:pr-14 group-hover:text-blue-600 transition-colors">
+                      {namespace['namespace-name'] || 'Unnamed Namespace'}
+                    </h2>
+                    <div className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 sm:gap-1">
+                      <button
+                        onClick={(e) => handleEditClick(namespace, e)}
+                        className="p-1 sm:p-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-all"
+                        title="Edit Namespace"
+                      >
+                        <Edit2 size={12} className="sm:hidden" />
+                        <Edit2 size={14} className="hidden sm:block" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteNamespace(namespace['namespace-id'], e)}
+                        className="p-1 sm:p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-all"
+                        title="Delete Namespace"
+                      >
+                        <Trash2 size={12} className="sm:hidden" />
+                        <Trash2 size={14} className="hidden sm:block" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full flex items-center justify-center py-12 text-gray-500">
+                  <p className="text-center">No namespaces found</p>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full flex items-center justify-center py-12 text-gray-500">
-              <p className="text-center">No namespaces found</p>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Accounts and Methods Section */}
         {selectedNamespace && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Accounts Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-4 border-b border-gray-100">
-                <div className="flex items-center justify-between">
+              <div className="p-3 sm:p-4 border-b border-gray-100">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <h2 className="text-lg font-semibold text-gray-900">Accounts</h2>
-                  <div className="relative flex-1 max-w-xs ml-4">
+                  <div className="relative flex-1 w-full">
                     <input
                       type="text"
                       placeholder="Search accounts..."
@@ -623,7 +630,7 @@ const NamespacePage = () => {
                   </div>
                 </div>
               </div>
-              <div className="overflow-y-auto h-[calc(100vh-24rem)] p-4 space-y-2">
+              <div className="overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-24rem)] p-3 sm:p-4 space-y-2">
                 {accounts.map((account) => (
                   <div key={account['namespace-account-id']} className="p-4 border border-gray-100 rounded-lg">
                     <div className="flex justify-between items-start mb-3">
@@ -706,10 +713,10 @@ const NamespacePage = () => {
 
             {/* Methods Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-4 border-b border-gray-100">
-                <div className="flex items-center justify-between">
+              <div className="p-3 sm:p-4 border-b border-gray-100">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <h2 className="text-lg font-semibold text-gray-900">Methods</h2>
-                  <div className="relative flex-1 max-w-xs ml-4">
+                  <div className="relative flex-1 w-full">
                     <input
                       type="text"
                       placeholder="Search methods..."
@@ -723,7 +730,7 @@ const NamespacePage = () => {
                   </div>
                 </div>
               </div>
-              <div className="overflow-y-auto h-[calc(100vh-24rem)] p-4 space-y-2">
+              <div className="overflow-y-auto max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-24rem)] p-3 sm:p-4 space-y-2">
                 {methods.map((method) => (
                   <div key={method['namespace-method-id']} className="p-3 bg-gray-50 rounded-lg">
                     <div className="flex justify-between items-start mb-3">
@@ -836,8 +843,8 @@ const NamespacePage = () => {
 
         {/* Namespace Modal */}
         {isAddingNamespace && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
                   {editingNamespace ? 'Edit Namespace' : 'Create New Namespace'}
@@ -922,8 +929,8 @@ const NamespacePage = () => {
 
         {/* Edit Account Modal */}
         {isEditingAccount && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <h3 className="text-xl font-semibold mb-4">Edit Account</h3>
               <div className="space-y-4">
                 <div>
@@ -1154,8 +1161,8 @@ const NamespacePage = () => {
 
         {/* Edit Method Modal */}
         {isEditingMethod && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <h3 className="text-xl font-semibold mb-4">Edit Method</h3>
               <div className="space-y-4">
                 <div>
